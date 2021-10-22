@@ -26,7 +26,9 @@ final class ValidationTestViewController: UIViewController {
 }
 
 extension ValidationTestViewController: UITextFieldDelegate {
+    ///Enterを押したとき
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        //CompositeValidatorを使用する
         let validator = NameValidator()
         let result: ValidationResult = validator.validate(textField.text ?? "")
         switch result {

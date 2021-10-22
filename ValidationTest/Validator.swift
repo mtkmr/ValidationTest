@@ -135,11 +135,6 @@ struct PhoneNumberValidator: Validator {
     }
 }
 
-
-
-
-
-
 //MARK: - 複合Validatorを作成していく
 struct NameValidator: CompositeValidator {
 //    var validators: [Validator] = [
@@ -159,8 +154,8 @@ private extension String {
     /// 文字が半角英数字か判定
     /// - Returns: true：半角英数字カナのみ、false：半角以外が含まれる
     func isHalfWidthCharacter() -> Bool {
-//        return range(of: "[^a-zA-Z0-9ｦ-゜$]", options: .regularExpression) == nil // TODO: 半濁音記号はどれが正しいか調査必要
-        return range(of: "[^a-zA-Z0-9- $]", options: .regularExpression) == nil
+        // TODO: 濁音、半濁音記号はどれが正しいか調査必要
+        return range(of: "[^a-zA-Z0-9ｦ-ﾝ- $]", options: .regularExpression) == nil
     }
 
     /// 文字が全角文字か判定
