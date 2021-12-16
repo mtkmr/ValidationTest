@@ -10,7 +10,6 @@ import UIKit
 final class ValidationTestViewController: UIViewController {
 
     @IBOutlet private weak var resultLabel: UILabel!
-
     @IBOutlet private weak var textField: UITextField!
 
     override func viewDidLoad() {
@@ -21,6 +20,20 @@ final class ValidationTestViewController: UIViewController {
 
     private func setupTextField() {
         textField.delegate = self
+        textField.layer.cornerRadius = 5
+        textField.layer.borderWidth = 1.0
+        textField.layer.borderColor = UIColor.gray.cgColor
+    }
+
+    private func changeUIPartsAppearance(result: ValidationResult) {
+        switch result {
+        case .valid:
+            textField.layer.borderColor = UIColor.gray.cgColor
+            resultLabel.textColor = .label
+        case .invalid(_):
+            textField.layer.borderColor = UIColor.red.cgColor
+            resultLabel.textColor = .red
+        }
     }
 
 }
@@ -29,17 +42,16 @@ extension ValidationTestViewController: UITextFieldDelegate {
     ///Enterを押したとき
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         //CompositeValidatorを使用する
-        let validator = NameValidator()
+        let validator = InputValidator()
         let result: ValidationResult = validator.validate(textField.text ?? "")
+        changeUIPartsAppearance(result: result)
         switch result {
         case .valid:
             resultLabel.text = "😄"
-            resultLabel.textColor = .label
             print("OK")
         case .invalid(let error):
             resultLabel.text = error.description
-            resultLabel.textColor = .red
-            print("\(error.description)")
+            print("Invalid text for reason: \(error.description)")
         }
 
         return true

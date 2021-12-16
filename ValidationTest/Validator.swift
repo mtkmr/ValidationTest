@@ -8,8 +8,6 @@
 import Foundation
 
 
-
-
 enum ValidationResult {
     case valid
     case invalid(ValidationError)
@@ -18,9 +16,9 @@ enum ValidationResult {
 enum ValidationError: Error {
     case empty
     case length(min: Int, max: Int)
-    case halfWidthCharacterFormat
-    case fullWidthCharacterFormat
-    case phoneNumberFormat
+    case notFullWidth
+    case notHalfWidthAlphanumeric
+    case notHalfWidthNumeric
 
     var description: String {
         switch self {
@@ -28,39 +26,34 @@ enum ValidationError: Error {
             return "文字を入力してください"
         case .length(let min, let max):
             return "文字数を\(min)文字以上、\(max)文字以下で入力してください"
-        case .halfWidthCharacterFormat:
-            return "全て半角文字で入力してください"
-        case .fullWidthCharacterFormat:
-            return "全て全角文字で入力してください"
-        case .phoneNumberFormat:
-            return "20桁以下の値、かつ　全て半角英大文字・半角数字・半角ハイフンで入力してください"
+        case .notFullWidth:
+            return "全角文字のみで入力してください"
+        case .notHalfWidthAlphanumeric:
+            return "半角英数字のみで入力してください"
+        case .notHalfWidthNumeric:
+            return "半角数字のみで入力してください"
         }
     }
 }
 
-//バリデーションに関する役割
 protocol Validator {
     func validate(_ text: String) -> ValidationResult
 }
 
-//種類ごとにvalidationを持ち、それぞれ実行して結果を返す複合バリデーションの役割
 protocol CompositeValidator: Validator {
     var validators: [Validator] { get }
     func validate(_ text: String) -> ValidationResult
 }
 
-//複合バリデーター。これを使用してバリデーションを順番にかけていく。
 extension CompositeValidator {
-    ///validatorsの中のvalidatorの結果を順番に取得して配列として返す
     private func validate(_ text: String) -> [ValidationResult] {
         return validators.map { $0.validate(text) }
     }
 
-    ///これが使うやつ。結果をValidationResultに型付けしてあげる
+    ///Use this.
     func validate(_ text: String) -> ValidationResult {
         let results: [ValidationResult] = validate(text)
-
-        //順番に実行したバリデーションでエラーを吐いたもの(最初のエラー)を返す。なければ.valid
+        //全てのValidatorでバリデーションし、エラーを吐いたものを返す。なければ.valid。
         let errors = results.filter { result -> Bool in
             switch result {
             case .valid:
@@ -69,13 +62,12 @@ extension CompositeValidator {
                 return true
             }
         }
-
         return errors.first ?? .valid
     }
 }
 
-//MARK: - 様々なValidatorを作成
-//必須項目の入力バリデーション
+//MARK: - Create validators
+//必須項目
 struct EmptyValidator: Validator {
     func validate(_ text: String) -> ValidationResult {
         if text.isEmpty {
@@ -86,7 +78,7 @@ struct EmptyValidator: Validator {
     }
 }
 
-//min文字以上、max文字以内の文字数制限バリデーション
+//min文字以上、max文字以内の文字数制限
 struct LengthValidator: Validator {
 
     let min: Int
@@ -101,67 +93,90 @@ struct LengthValidator: Validator {
     }
 }
 
-//半角文字かどうかのバリデーション
-struct HalfWidthValidator: Validator {
-    func validate(_ text: String) -> ValidationResult {
-        if text.isHalfWidthCharacter() {
-            return .valid
-        } else {
-            return .invalid(.halfWidthCharacterFormat)
-        }
-    }
-}
-
-//全角文字かどうかのバリデーション
+//全角
 struct FullWidthValidator: Validator {
     func validate(_ text: String) -> ValidationResult {
-        if text.isFullWidthCharacter() {
-            return .valid
+        if text.isInvalid(textType: .fullWidth) {
+            return .invalid(.notFullWidth)
         } else {
-            return .invalid(.fullWidthCharacterFormat)
+            return .valid
         }
     }
 }
 
-//「20桁以下の値、かつ　全て半角英大文字・半角数字・半角ハイフン（"-"）のいずれか」
-//例：電話番号
-struct PhoneNumberValidator: Validator {
+//半角英数字
+struct HalfWidthAlphanumericValidator: Validator {
     func validate(_ text: String) -> ValidationResult {
-        if text.range(of: "[^A-Z0-9- $]", options: .regularExpression) == nil {
-            return .valid
+        if text.isInvalid(textType: .halfWidthAlphanumeric) {
+            return .invalid(.notHalfWidthAlphanumeric)
         } else {
-            return .invalid(.phoneNumberFormat)
+            return .valid
         }
     }
 }
 
-//MARK: - 複合Validatorを作成していく
-struct NameValidator: CompositeValidator {
-//    var validators: [Validator] = [
-//        EmptyValidator(),
-//        LengthValidator(min: 1, max: 20),
-//        HalfWidthValidator()
-//    ]
+//半角数字
+struct HalfWidthNumericValidator: Validator {
+    func validate(_ text: String) -> ValidationResult {
+        if text.isInvalid(textType: .halfWidthNumeric) {
+            return .invalid(.notHalfWidthNumeric)
+        } else {
+            return .valid
+        }
+    }
+}
+
+
+//MARK: - Create composite validators
+struct InputValidator: CompositeValidator {
+
+    //Custom myself
     var validators: [Validator] = [
-        HalfWidthValidator()
+        FullWidthValidator()
     ]
 
-
 }
 
-//MARK: - Extension+
+//MARK: - 文字タイプのEnum
+enum TextType {
+    case fullWidth      //全角
+    case fullWidthHiragana      //全角ひらがな
+    case fullwidthKatakana      //全角カタカナ
+    case halfWidthAlphanumeric      //半角英数
+    case halfWidthNumeric       //半角数字
+    case halfWidthAlphabetic        //半角英字
+    case halfWidthUpperAlphabetic       //半角英字 (大文字)
+    case halfWidthLowerAlphabetic       //半角英字 (小文字)
+}
+
+//MARK: - 正規表現による文字の判別メソッドの追加
 private extension String {
-    /// 文字が半角英数字か判定
-    /// - Returns: true：半角英数字カナのみ、false：半角以外が含まれる
-    func isHalfWidthCharacter() -> Bool {
-        // TODO: 濁音、半濁音記号はどれが正しいか調査必要
-        return range(of: "[^a-zA-Z0-9ｦ-ﾝ- $]", options: .regularExpression) == nil
+    func isInvalid(textType: TextType) -> Bool {
+        switch textType {
+            //全角 (＝１バイトの文字\x01-\x7Eと半角カナ\uFF61-\uFF9F以外)
+        case .fullWidth:
+            return range(of: "^[^\\x01-\\x7E\\uFF61-\\uFF9F]+$", options: .regularExpression) == nil
+            //全角ひらがな
+        case .fullWidthHiragana:
+            return range(of: "^[\\u3041-\\u3096F]+$", options: .regularExpression) == nil
+            //全角カタカナ
+        case .fullwidthKatakana:
+            return range(of: "^[\\u30a1-\\u30f6]+$", options: .regularExpression) == nil
+            //半角英数字
+        case .halfWidthAlphanumeric:
+            return range(of: "^[a-zA-Z0-9]+$", options: .regularExpression) == nil
+            //半角数字
+        case .halfWidthNumeric:
+            return range(of: "^[0-9]+$", options: .regularExpression) == nil
+            //半角英字
+        case .halfWidthAlphabetic:
+            return range(of: "^[a-zA-Z]+$", options: .regularExpression) == nil
+            //半角英字 (大文字)
+        case .halfWidthUpperAlphabetic:
+            return range(of: "^[A-Z]+$", options: .regularExpression) == nil
+            //半角英字 (小文字)
+        case .halfWidthLowerAlphabetic:
+            return range(of: "^[a-z]+$", options: .regularExpression) == nil
+        }
     }
-
-    /// 文字が全角文字か判定
-    /// - Returns: true：全角英数字カナかな漢字のみ、false：全角以外が含まれる
-    func isFullWidthCharacter() -> Bool {
-        return (range(of: "[^ａ-ｚＡ-Ｚ０-９ぁ-んァ-ヴ\u{3005}\u{3007}\u{303b}\u{3400}-\u{9fff}\u{f900}-\u{faff}\u{20000}-\u{2ffff}ー　$]", options: .regularExpression) == nil)
-    }
-
 }
