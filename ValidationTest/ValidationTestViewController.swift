@@ -42,7 +42,7 @@ extension ValidationTestViewController: UITextFieldDelegate {
     ///Enterを押したとき
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         //CompositeValidatorを使用する
-        let validator = InputValidator()
+        let validator = NameCompositeValidator()
         let result: ValidationResult = validator.validate(textField.text ?? "")
         changeUIPartsAppearance(result: result)
         switch result {

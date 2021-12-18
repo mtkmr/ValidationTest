@@ -13,7 +13,7 @@ enum ValidationResult {
     case invalid(ValidationError)
 }
 
-enum ValidationError: Error {
+enum ValidationError: Error, Equatable {
     case empty
     case length(min: Int, max: Int)
     case notFullWidth
@@ -128,13 +128,12 @@ struct HalfWidthNumericValidator: Validator {
 
 
 //MARK: - Create composite validators
-struct InputValidator: CompositeValidator {
-
-    //Custom myself
+struct NameCompositeValidator: CompositeValidator {
     var validators: [Validator] = [
+        EmptyValidator(),
+        LengthValidator(min: 1, max: 20),
         FullWidthValidator()
     ]
-
 }
 
 //MARK: - 文字タイプのEnum
