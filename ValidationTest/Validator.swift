@@ -40,17 +40,17 @@ protocol Validator {
     func validate(_ text: String) -> ValidationResult
 }
 
-protocol CompositeValidator: Validator {
-    var validators: [Validator] { get }
-    func validate(_ text: String) -> ValidationResult
-}
+struct CompositeValidator: Validator {
+    private let validators: [Validator]
 
-extension CompositeValidator {
+    init(validators: [Validator]) {
+        self.validators = validators
+    }
+
     private func validate(_ text: String) -> [ValidationResult] {
         return validators.map { $0.validate(text) }
     }
 
-    ///Use this.
     func validate(_ text: String) -> ValidationResult {
         let results: [ValidationResult] = validate(text)
         //全てのValidatorでバリデーションし、エラーを吐いたものを返す。なければ.valid。
@@ -128,12 +128,17 @@ struct HalfWidthNumericValidator: Validator {
 
 
 //MARK: - Create composite validators
-struct NameCompositeValidator: CompositeValidator {
-    var validators: [Validator] = [
-        EmptyValidator(),
-        LengthValidator(min: 1, max: 20),
-        FullWidthValidator()
-    ]
+struct CompositeValidatorFactory {
+    static let shared = CompositeValidatorFactory()
+    private init() {}
+
+    func nameValidator() -> CompositeValidator {
+        return CompositeValidator(validators: [
+            EmptyValidator(),
+            LengthValidator(min: 1, max: 20),
+            FullWidthValidator()
+        ])
+    }
 }
 
 //MARK: - 文字タイプのEnum
