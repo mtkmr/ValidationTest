@@ -7,137 +7,122 @@
 
 import Foundation
 
+// 参考: https://owensd.io/2016/11/28/composite-validators-refined/
 
+//MARK: - Result
 enum ValidationResult {
-    case valid
-    case invalid(ValidationError)
+    case valid(String)
+    case invalid(Error)
 }
 
-enum ValidationError: Error, Equatable {
+enum EmailValidationError: Error, Equatable {
     case empty
-    case length(min: Int, max: Int)
-    case notFullWidth
-    case notHalfWidthAlphanumeric
-    case notHalfWidthNumeric
+    case invalidLength(min: Int, max: Int)
+    case invalidFormat
 
     var description: String {
         switch self {
         case .empty:
-            return "文字を入力してください"
-        case .length(let min, let max):
-            return "文字数を\(min)文字以上、\(max)文字以下で入力してください"
-        case .notFullWidth:
-            return "全角文字のみで入力してください"
-        case .notHalfWidthAlphanumeric:
-            return "半角英数字のみで入力してください"
-        case .notHalfWidthNumeric:
-            return "半角数字のみで入力してください"
+            return "メールアドレスを入力してください。"
+        case .invalidLength(min: let min, max: let max):
+            return "\(min)文字以上、\(max)文字以内で入力してください。"
+        case .invalidFormat:
+            return "フォーマットが正しくありません。"
         }
     }
 }
 
+enum PasswordValidationError: Error {
+    case empty
+
+    var description: String {
+        switch self {
+        case .empty:
+            return "パスワードを入力してください。"
+        }
+    }
+}
+
+//MARK: - Protocols
 protocol Validator {
     func validate(_ text: String) -> ValidationResult
 }
 
-struct CompositeValidator: Validator {
-    private let validators: [Validator]
+protocol CompositeValidator: Validator {
+    var validators: [Validator] { get }
+    func validate(_ text: String) -> ValidationResult
+}
 
-    init(validators: [Validator]) {
-        self.validators = validators
-    }
-
+extension CompositeValidator {
     private func validate(_ text: String) -> [ValidationResult] {
-        return validators.map { $0.validate(text) }
+        validators.map { $0.validate(text) }
     }
 
     func validate(_ text: String) -> ValidationResult {
-        let results: [ValidationResult] = validate(text)
-        //全てのValidatorでバリデーションし、エラーを吐いたものを返す。なければ.valid。
-        let errors = results.filter { result -> Bool in
-            switch result {
-            case .valid:
-                return false
-            case .invalid:
+        let validationResults: [ValidationResult] = validate(text)
+        let errors = validationResults.filter { result in
+            if case .invalid = result {
                 return true
+            } else {
+                return false
             }
         }
-        return errors.first ?? .valid
+        return errors.first ?? .valid(text)
     }
 }
 
-//MARK: - Create validators
-//必須項目
-struct EmptyValidator: Validator {
+// MARK: - Single Validator
+
+struct EmailEmptyValidator: Validator {
     func validate(_ text: String) -> ValidationResult {
-        if text.isEmpty {
-            return .invalid(.empty)
-        } else {
-            return .valid
-        }
+        text.isEmpty ? .invalid(EmailValidationError.empty) : .valid(text)
     }
 }
 
-//min文字以上、max文字以内の文字数制限
-struct LengthValidator: Validator {
-
+struct EmailLengthValidator: Validator {
     let min: Int
     let max: Int
-
     func validate(_ text: String) -> ValidationResult {
         if text.count >= min && text.count <= max {
-            return .valid
+            return .valid(text)
         } else {
-            return .invalid(.length(min: min, max: max))
+            return .invalid(EmailValidationError.invalidLength(min: min, max: max))
         }
     }
 }
 
-//全角
-struct FullWidthValidator: Validator {
+struct EmailFormatValidator: Validator {
     func validate(_ text: String) -> ValidationResult {
-        if text.isInvalid(textType: .fullWidth) {
-            return .invalid(.notFullWidth)
-        } else {
-            return .valid
-        }
+        text.isInvalid(textType: .emailFormat) ? .invalid(EmailValidationError.invalidFormat) : .valid(text)
     }
 }
 
-//半角英数字
-struct HalfWidthAlphanumericValidator: Validator {
+struct PasswordEmptyValidator: Validator {
     func validate(_ text: String) -> ValidationResult {
-        if text.isInvalid(textType: .halfWidthAlphanumeric) {
-            return .invalid(.notHalfWidthAlphanumeric)
-        } else {
-            return .valid
-        }
+        text.isEmpty ? .invalid(PasswordValidationError.empty) : .valid(text)
     }
 }
 
-//半角数字
-struct HalfWidthNumericValidator: Validator {
-    func validate(_ text: String) -> ValidationResult {
-        if text.isInvalid(textType: .halfWidthNumeric) {
-            return .invalid(.notHalfWidthNumeric)
-        } else {
-            return .valid
-        }
+// MARK: - Composite Validator
+// バリデーションに使用する
+
+// メールアドレスのバリデーション
+struct EmailValidator: CompositeValidator {
+    var validators: [Validator]
+    init() {
+        self.validators = [
+            EmailEmptyValidator(),
+            EmailLengthValidator(min: 1, max: 254),
+            EmailFormatValidator()
+        ]
     }
 }
 
-
-//MARK: - Create composite validators
-struct CompositeValidatorFactory {
-    static let shared = CompositeValidatorFactory()
-    private init() {}
-
-    func nameValidator() -> CompositeValidator {
-        return CompositeValidator(validators: [
-            EmptyValidator(),
-            LengthValidator(min: 1, max: 20),
-            FullWidthValidator()
-        ])
+// パスワードのバリデーション
+struct PasswordValidator: CompositeValidator {
+    var validators: [Validator]
+    init() {
+        self.validators = [PasswordEmptyValidator()]
     }
 }
 
@@ -151,36 +136,41 @@ enum TextType {
     case halfWidthAlphabetic        //半角英字
     case halfWidthUpperAlphabetic       //半角英字 (大文字)
     case halfWidthLowerAlphabetic       //半角英字 (小文字)
+    case emailFormat        //Email形式
 }
 
 //MARK: - 正規表現による文字の判別メソッドの追加
 private extension String {
     func isInvalid(textType: TextType) -> Bool {
         switch textType {
-            //全角 (＝１バイトの文字\x01-\x7Eと半角カナ\uFF61-\uFF9F以外)
+            // 全角 (＝１バイトの文字\x01-\x7Eと半角カナ\uFF61-\uFF9F以外)
         case .fullWidth:
             return range(of: "^[^\\x01-\\x7E\\uFF61-\\uFF9F]+$", options: .regularExpression) == nil
-            //全角ひらがな
+            // 全角ひらがな
         case .fullWidthHiragana:
             return range(of: "^[\\u3041-\\u3096F]+$", options: .regularExpression) == nil
-            //全角カタカナ
+            // 全角カタカナ
         case .fullwidthKatakana:
             return range(of: "^[\\u30a1-\\u30f6]+$", options: .regularExpression) == nil
-            //半角英数字
+            // 半角英数字
         case .halfWidthAlphanumeric:
             return range(of: "^[a-zA-Z0-9]+$", options: .regularExpression) == nil
-            //半角数字
+            // 半角数字
         case .halfWidthNumeric:
             return range(of: "^[0-9]+$", options: .regularExpression) == nil
-            //半角英字
+            // 半角英字
         case .halfWidthAlphabetic:
             return range(of: "^[a-zA-Z]+$", options: .regularExpression) == nil
-            //半角英字 (大文字)
+            // 半角英字 (大文字)
         case .halfWidthUpperAlphabetic:
             return range(of: "^[A-Z]+$", options: .regularExpression) == nil
-            //半角英字 (小文字)
+            // 半角英字 (小文字)
         case .halfWidthLowerAlphabetic:
             return range(of: "^[a-z]+$", options: .regularExpression) == nil
+            // Email
+        case .emailFormat:
+            let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}"
+            return !NSPredicate(format: "SELF MATCHES %@", emailRegex).evaluate(with: self)
         }
     }
 }

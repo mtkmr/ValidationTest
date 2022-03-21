@@ -7,7 +7,6 @@
 
 import XCTest
 @testable import ValidationTest
-//@testable import ValidationTest
 
 class ValidatorTest: XCTestCase {
 
@@ -20,21 +19,25 @@ class ValidatorTest: XCTestCase {
         }
     }
 
-    func testNameValidator() {
-        let validator = CompositeValidatorFactory.shared.nameValidator()
-        let nameValid = "田中太郎"
-        let nameEmpty = ""
-        let nameLengthOver20 = "長い氏名長い氏名長い氏名長い氏名長い氏名長い氏名"
-        let nameFalseFormat = "korehahankakudesu"
-        XCTAssertNoThrow(try isValid(validator.validate(nameValid)), "成功ケースを正常に検出できていません")
-        XCTAssertThrowsError(try isValid(validator.validate(nameEmpty)), "エラーが投げられていません。") { error in
-            XCTAssertEqual(error as! ValidationError, ValidationError.empty, "ValdationError.emptyが投げられていません")
+    func testEmailValidator() {
+        let emailValidator = EmailValidator()
+        let emailValid = "hoge@google.jp"
+        let emailEmpty = ""
+        let emailInvalidFormat = "hogehogehoge"
+        XCTAssertNoThrow(try isValid(emailValidator.validate(emailValid)), "成功ケースを正常に検出できていません")
+        XCTAssertThrowsError(try isValid(emailValidator.validate(emailEmpty)), "エラーが投げられていません。") { error in
+            XCTAssertEqual(error as! EmailValidationError, EmailValidationError.empty, "EmailValidationError.emptyが投げられていません")
         }
-        XCTAssertThrowsError(try isValid(validator.validate(nameLengthOver20)), "エラーが投げられていません。") { error in
-            XCTAssertEqual(error as! ValidationError, ValidationError.length(min: 1, max: 20), "ValdationError.length(min: 1, max: 20)が投げられていません")
+        XCTAssertThrowsError(try isValid(emailValidator.validate(emailInvalidFormat)), "エラーが投げられていません。") { error in
+            XCTAssertEqual(error as! EmailValidationError, EmailValidationError.invalidFormat, "EmailValidationError.invalidFormatが投げられていません")
         }
-        XCTAssertThrowsError(try isValid(validator.validate(nameFalseFormat)), "エラーが投げられていません。") { error in
-            XCTAssertEqual(error as! ValidationError, ValidationError.notFullWidth, "ValdationError.fullWidthが投げられていません")
+    }
+
+    func testPasswordValidator() {
+        let passwordValidator = PasswordValidator()
+        let passwordEmpty = ""
+        XCTAssertThrowsError(try isValid(passwordValidator.validate(passwordEmpty)), "エラーが投げられていません。") { error in
+            XCTAssertEqual(error as! PasswordValidationError, PasswordValidationError.empty, "PasswordValidationError.emptyが投げられていません")
         }
     }
 

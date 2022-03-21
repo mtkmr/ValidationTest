@@ -25,7 +25,7 @@ final class ValidationTestViewController: UIViewController {
         textField.layer.borderColor = UIColor.gray.cgColor
     }
 
-    private func changeUIPartsAppearance(result: ValidationResult) {
+    private func updateUI(result: ValidationResult) {
         switch result {
         case .valid:
             textField.layer.borderColor = UIColor.gray.cgColor
@@ -42,16 +42,18 @@ extension ValidationTestViewController: UITextFieldDelegate {
     ///Enterを押したとき
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         //CompositeValidatorを使用する
-        let validator = CompositeValidatorFactory.shared.nameValidator()
+        let validator = EmailValidator()
         let result: ValidationResult = validator.validate(textField.text ?? "")
-        changeUIPartsAppearance(result: result)
+        updateUI(result: result)
         switch result {
-        case .valid:
+        case .valid(let text):
             resultLabel.text = "😄"
-            print("OK")
+            print(text)
         case .invalid(let error):
-            resultLabel.text = error.description
-            print("Invalid text for reason: \(error.description)")
+            if let emailValidationError = error as? EmailValidationError {
+                resultLabel.text = emailValidationError.description
+                print("Invalid text for reason: \(emailValidationError.description)")
+            }
         }
 
         return true

@@ -13,7 +13,6 @@
 		8C896A83272260F700517861 /* ValidationTestViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C896A82272260F700517861 /* ValidationTestViewController.swift */; };
 		8C896A852722610500517861 /* ValidationTest.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8C896A842722610500517861 /* ValidationTest.storyboard */; };
 		8C896A8727227C5A00517861 /* Validator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C896A8627227C5A00517861 /* Validator.swift */; };
-		8CDB5005276DDEA600B8ECF2 /* ValidationTestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDB5004276DDEA600B8ECF2 /* ValidationTestTests.swift */; };
 		8CDB500C276DEAED00B8ECF2 /* ValidatorTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDB500B276DEAED00B8ECF2 /* ValidatorTest.swift */; };
 /* End PBXBuildFile section */
 
@@ -37,7 +36,6 @@
 		8C896A842722610500517861 /* ValidationTest.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = ValidationTest.storyboard; sourceTree = "<group>"; };
 		8C896A8627227C5A00517861 /* Validator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validator.swift; sourceTree = "<group>"; };
 		8CDB5002276DDEA600B8ECF2 /* ValidationTestTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ValidationTestTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		8CDB5004276DDEA600B8ECF2 /* ValidationTestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidationTestTests.swift; sourceTree = "<group>"; };
 		8CDB500B276DEAED00B8ECF2 /* ValidatorTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidatorTest.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -94,7 +92,6 @@
 		8CDB5003276DDEA600B8ECF2 /* ValidationTestTests */ = {
 			isa = PBXGroup;
 			children = (
-				8CDB5004276DDEA600B8ECF2 /* ValidationTestTests.swift */,
 				8CDB500B276DEAED00B8ECF2 /* ValidatorTest.swift */,
 			);
 			path = ValidationTestTests;
@@ -212,7 +209,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				8CDB500C276DEAED00B8ECF2 /* ValidatorTest.swift in Sources */,
-				8CDB5005276DDEA600B8ECF2 /* ValidationTestTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
